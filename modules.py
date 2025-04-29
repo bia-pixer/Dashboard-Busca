@@ -1,6 +1,7 @@
 import pandas as pd
 import requests
 import time
+import os
 from GoogleNews import GoogleNews
 from pytrends.request import TrendReq
 
@@ -9,25 +10,68 @@ api_key_etherscan = 'NQA5MKM8HEAZ7ICX1RU6531N1Y12W56QCS'
 api_key_bscscan = 'Y9VF33DJPMEM1QVA5YCJ8NVC9J5NAYGAJE'
 endereco = '0xdAC17F958D2ee523a2206206994597C13D831ec7' # Tether
 
-def noticias_google(termo_busca):
+def noticias_google(termo_busca, atualizar_consulta=False):
     """
     Retorna as manchetes de jornais e seus respectivos links relacionados ao termo de busca.
     Realiza as buscas na região do Brasil e em português.
+    A primeira vez que o termo é buscado, gera um arquivo .csv com o retorno da API.
+    As buscas subsequentes desse termo retornam o arquivo .csv.
 
     Parâmetro:
     termo_busca (str): Termo de pesquisa
-
-    Retorna:
-    df: (manchete ,link)
+    atualizar_consulta: Realizar nova solicitação via API
     """
-    googlenews = GoogleNews(lang='pt', region='BR')
+    filename = termo_busca.replace(' ', '_')
+    filepath = f'buscas/news/{filename}.csv'
 
-    googlenews.search(termo_busca)
+    if atualizar_consulta:
+        if os.path.exists(filepath):
+            os.remove(filepath)
 
-    resultados = googlenews.result()
+    try:
+        df = pd.read_csv(filepath)
+        df['link'] = df['link'].apply(lambda x: x.split('/&')[0])
+        return df
+    except:
+        googlenews = GoogleNews(lang='pt', region='BR')
 
-    df = pd.DataFrame(resultados)
-    return df
+        googlenews.search(termo_busca)
+
+        resultados = googlenews.result()
+
+        df = pd.DataFrame(resultados)
+        df['link'] = df['link'].apply(lambda x: x.split('/&')[0])
+
+        df.to_csv(f'buscas/news/{filename}.csv', index=False)
+        return df
+
+def df_to_html_table(df):
+    """
+    Transforma um dataframe em uma tabela html. Aplica o hiperlink na manchete.
+    """
+    df['manchete_linkada'] = df.apply(
+        lambda row: f"<a href='{row['link']}' target='_blank'>{row['title']} </a>", axis=1
+    )
+    df.drop(columns=['datetime', 'img', 'title', 'link'], inplace=True)
+    df = df[['media', 'manchete_linkada', 'date', 'desc']]
+    df.columns = ['Fonte', 'Manchete', 'Data', 'Descrição']
+    # Montando a tabela HTML manualmente
+    table_html = "<table>"
+    table_html += "<tr>"
+    for col in df.columns:
+        # cabeçalho
+        header = 'Manchete' if col == 'Manchete' else col.capitalize()
+        table_html += f"<th>{header}</th>"
+    table_html += "</tr>"
+
+    # linhas
+    for _, row in df.iterrows():
+        table_html += "<tr>"
+        for col in df.columns:
+            table_html += f"<td>{row[col]}</td>"
+        table_html += "</tr>"
+    table_html += "</table>"
+    return table_html
 
 def tendencia_google(termo, periodo='today 12-m', regiao='worldwide'):
     """

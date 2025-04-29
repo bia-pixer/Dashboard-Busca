@@ -1,6 +1,6 @@
 
 import streamlit as st
-from modules import noticias_google, tendencia_google
+import modules as m
 
 st.set_page_config(layout='wide', 
                    page_title='Busca de Ativos Virtuais',
@@ -23,11 +23,14 @@ if termo:
 # Notícias ---------------------------------------------------------------------
 st.subheader('Principais Notícias', divider='gray')
 
-news_df = noticias_google(termo)
+if termo:
+    news_df = m.noticias_google(termo)
+    news_df = m.df_to_html_table(news_df)
+    st.markdown(news_df, unsafe_allow_html=True)
 
-st.dataframe(data=news_df, 
-             use_container_width=True, 
-             hide_index=True,
-             column_order=('Fonte', 'Manchete', 'Data', 'Descrição', 'Link'))
+# Google Trends ----------------------------------------------------------------
+st.subheader('Tendências de Busca', divider='gray')
 
-# dados_interesse, dados_regiao, relacionados = tendencia_google('eike token')
+# if termo:
+    # dados_interesse, dados_regiao, relacionados = m.tendencia_google(termo)
+
