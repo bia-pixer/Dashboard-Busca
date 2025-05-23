@@ -1,15 +1,26 @@
 import pandas as pd
+import numpy as np
 import requests
 import time
+from datetime import datetime
 import os
+import random
 from GoogleNews import GoogleNews
 from pytrends.request import TrendReq
+from telethon import TelegramClient
+import asyncio
 import plotly.graph_objects as go
+import plotly.io as pio
 
 # Chaves de API
 api_key_etherscan = 'NQA5MKM8HEAZ7ICX1RU6531N1Y12W56QCS'
 api_key_bscscan = 'Y9VF33DJPMEM1QVA5YCJ8NVC9J5NAYGAJE'
 endereco = '0xdAC17F958D2ee523a2206206994597C13D831ec7' # Tether
+telegram_api_id = '21923304'
+telegram_api_hash = 'c6185c1f1035db033c56222873a06e14'
+
+# Define o tema padrão para todos os gráficos
+pio.templates.default = "plotly_white"
 
 def noticias_google(termo_busca, atualizar_consulta=False):
     """
@@ -172,6 +183,7 @@ def blockchain_data(address,
         except Exception as e:
             print(f"Falha no Etherscan: {e}")
             time.sleep(2)
+            return None, None
 
     # BscScan
     elif bscscan:
@@ -204,6 +216,7 @@ def blockchain_data(address,
         except Exception as e:
             print(f"Falha no BscScan: {e}")
             time.sleep(2)
+            return None, None
 
     # Solscan
     elif solscan:
@@ -272,3 +285,144 @@ def explorer_graph(total_transferences, num_of_transferences):
         legend=dict(x=0.1, y=1.1, orientation='h')
     )
     return fig
+
+def twitter_diagnosis(file_name):
+    df= pd.read_csv(f'buscas/twitter/{file_name}.csv')
+
+    # Seleciona as colunas de interesse
+    columns= ['author/followers', 'author/isBlueVerified', 'author/name', 
+            'author/username', 'createdAt', 'isQuote', 'isReply', 'lang', 
+            'likeCount', 'quoteCount', 'replyCount', 'retweetCount', 'text', 
+            'viewCount']
+    df = df[columns]
+
+    # Ajusta coluna de data e cria coluna de número de tweets por dia
+    df['createdAt'] = pd.to_datetime(df['createdAt'])
+    df['date'] = df['createdAt'].dt.date
+    tweets_por_dia = df.groupby('date').size()
+
+    # GRÁFICO: Número de tweets diários com o termo buscado
+    graph_1 = go.Figure()
+
+    graph_1.add_trace(go.Scatter(x=tweets_por_dia.index, y=tweets_por_dia,
+                            line=dict(color='#28724F', width=4)))
+        
+    graph_1.update_layout(title='Número de tweets diários com o termo buscado')
+    graph_1.update_yaxes(title_text='Quantidade de tweets')
+
+    # GRÁFICO: Matriz de Correlação Entre os Indicadores de Engajamento
+    corr_map = ['author/followers', 'likeCount', 'retweetCount', 'replyCount', 'viewCount']
+    corr_map = df[corr_map].corr()
+    labels = ['Seguidores', 'Likes', 'Retweets', 'Respostas', 'Visualizações']
+    heatmap = go.Figure(data=go.Heatmap(z=corr_map, 
+                                    x=labels, y = labels,
+                                    colorscale='Viridis_R',
+                                    text=np.round(corr_map, 2),
+                                    texttemplate='%{text}',
+                                    textfont={'size':14}))
+    heatmap.update_layout(title='Matriz de Correlação Entre os Indicadores de Engajamento')
+
+    # TABELA: Perfis mais ativos
+    perfis_ativos = df.groupby('author/username')['text'].count()
+    total_amount_of_posts = perfis_ativos.sum()
+    perfis_ativos = pd.DataFrame(perfis_ativos)
+    perfis_ativos['pct_total'] = perfis_ativos['text'].apply(lambda x: (x/total_amount_of_posts * 100).round(2)) 
+    perfis_ativos.sort_values(by='text', ascending=False, inplace=True)
+    perfis_ativos.columns = ['Quantidade de Tweets', 'Total de Tweets Sobre o Tema (%)']
+
+    # TABELA: Engajamento
+    engajamento_perfil = pd.DataFrame(index=df['author/username'].unique())
+
+    # Engajamento Total = likes + quotes + replies + retweets
+    table = df.groupby('author/username')[['likeCount', 'quoteCount', 'replyCount', 'retweetCount']].sum()
+    table['Engajamento Total'] = table.sum(axis=1)
+    table.sort_index(ascending=True, inplace=True)
+    engajamento_perfil['Engajamento Total'] = table['Engajamento Total']
+
+    seguidores = df.groupby('author/username')['author/followers'].max()
+    seguidores.sort_index(ascending=True, inplace=True)
+
+    # Engajamento dos Seguidores = Engajamento Total / Número de seguidores
+    engajamento_perfil['Engajamento dos Seguidores (%)'] = table['Engajamento Total'] / seguidores * 100
+
+    # Engajamento Médio por Tweet = Engajamento Total / Número de Tweets
+    num_of_tweets = df.groupby('author/username')['text'].count()
+    num_of_tweets.sort_index(ascending=True, inplace=True)
+    engajamento_perfil['Engajamento Médio por Tweet (%)'] = table['Engajamento Total'] / num_of_tweets * 100
+    engajamento_perfil = engajamento_perfil.round(2)
+
+    # Ordena tabela de engajamento
+    engajamento_perfil.sort_values(by=['Engajamento Total', 'Engajamento dos Seguidores (%)', 'Engajamento Médio por Tweet (%)'],
+                                   ascending=False, inplace=True)
+
+    # Tweets mais relevantes
+    tweets_relevantes = ['createdAt', 'author/username', 'text', 'viewCount', 'likeCount']
+    columns = ['Data', 'Username', 'Tweet', 'Visualizações', 'Curtidas']
+    tweets_relevantes = df[tweets_relevantes]
+    tweets_relevantes.sort_values(by=['viewCount', 'likeCount'], ascending=False, inplace=True)
+    tweets_relevantes.columns = columns
+
+    return graph_1, heatmap, perfis_ativos, engajamento_perfil, tweets_relevantes, df
+
+async def telegram_data(channel_username, message_limit=100,
+                        api_id='21923304', api_hash='c6185c1f1035db033c56222873a06e14'):
+    client = TelegramClient('session_name', api_id, api_hash)
+    await client.start()
+
+    channel = await client.get_entity(channel_username)
+
+    messages = []
+    async for message in client.iter_messages(channel, limit=message_limit):
+        sender = await message.get_sender()
+        # Tenta obter o nome do usuário; se não houver, marca como 'Desconhecido'
+        sender_name = (
+            (sender.first_name or '') + ' ' + (sender.last_name or '')
+            if sender and (sender.first_name or sender.last_name)
+            else 'Desconhecido'
+        )
+        messages.append({
+            'message_id': message.id,
+            'date': message.date,
+            'content': message.text,
+            'sender_name': sender_name.strip()
+        })
+        await asyncio.sleep(1)
+
+    df = pd.DataFrame(messages)
+    await client.disconnect()
+    now = datetime.now()
+    df.to_csv(f'buscas/telegram/{now.date()}_{random.randint(0, 100000)}.csv', index=False)
+
+    return df
+
+def activate_telegram_search(channel_username, message_limit=100, 
+                             api_id='21923304', api_hash='c6185c1f1035db033c56222873a06e14'):
+    import nest_asyncio
+    nest_asyncio.apply()
+    import asyncio
+
+    df = asyncio.run(telegram_data(channel_username, message_limit=message_limit, 
+                                   api_id=api_id, api_hash=api_hash))
+    return df
+
+def telegram_diagnosis(df):
+    df['date'] = pd.to_datetime(df['date'])
+    df['day'] = df['date'].dt.date
+    messages_per_day = df.groupby('day').size()
+    messages_per_day.sort_index(ascending=True, inplace=True)
+
+    # Gráfico: Número de mensagens por dia no canal
+    graph = go.Figure()
+    graph.add_trace(go.Scatter(x=messages_per_day.index, y=messages_per_day.values,
+                    line=dict(color='#28724F', width=4)))
+    graph.update_layout(title='Quantidade de Mensagens Postadas por Dia')
+    graph.update_yaxes(title_text='Número de Mensagens')
+
+    # Tabela: Perfis mais ativos
+    active_profiles = df.groupby('sender_name')['content'].count()
+    active_profiles.sort_values(ascending=False, inplace=True)
+    active_profiles.index.name = 'Username'
+    active_profiles.name = 'Mensagens Enviadas'
+    active_profiles = pd.DataFrame(active_profiles)
+
+    return graph, active_profiles
