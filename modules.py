@@ -12,13 +12,6 @@ import asyncio
 import plotly.graph_objects as go
 import plotly.io as pio
 
-# Chaves de API
-api_key_etherscan = 'NQA5MKM8HEAZ7ICX1RU6531N1Y12W56QCS'
-api_key_bscscan = 'Y9VF33DJPMEM1QVA5YCJ8NVC9J5NAYGAJE'
-endereco = '0xdAC17F958D2ee523a2206206994597C13D831ec7' # Tether
-telegram_api_id = '21923304'
-telegram_api_hash = 'c6185c1f1035db033c56222873a06e14'
-
 # Define o tema padrão para todos os gráficos
 pio.templates.default = "plotly_white"
 
@@ -364,8 +357,7 @@ def twitter_diagnosis(file_name):
 
     return graph_1, heatmap, perfis_ativos, engajamento_perfil, tweets_relevantes, df
 
-async def telegram_data(channel_username, message_limit=100,
-                        api_id='21923304', api_hash='c6185c1f1035db033c56222873a06e14'):
+async def telegram_data(channel_username, api_id, api_hash, message_limit):
     client = TelegramClient('session_name', api_id, api_hash)
     await client.start()
 
@@ -395,14 +387,13 @@ async def telegram_data(channel_username, message_limit=100,
 
     return df
 
-def activate_telegram_search(channel_username, message_limit=100, 
-                             api_id='21923304', api_hash='c6185c1f1035db033c56222873a06e14'):
+def activate_telegram_search(channel_username, api_id, api_hash, message_limit):
     import nest_asyncio
     nest_asyncio.apply()
     import asyncio
 
-    df = asyncio.run(telegram_data(channel_username, message_limit=message_limit, 
-                                   api_id=api_id, api_hash=api_hash))
+    df = asyncio.run(telegram_data(channel_username, api_id=api_id, 
+                                   api_hash=api_hash, message_limit=message_limit))
     return df
 
 def telegram_diagnosis(df):

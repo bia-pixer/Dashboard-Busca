@@ -3,11 +3,6 @@ import streamlit as st
 import modules as m
 import asyncio
 
-# Credenciais ------------------------------------------------------------------
-api_key_etherscan = 'NQA5MKM8HEAZ7ICX1RU6531N1Y12W56QCS'
-api_key_bscscan = 'Y9VF33DJPMEM1QVA5YCJ8NVC9J5NAYGAJE'
-api_key = None
-
 # Configurações gerais da página -----------------------------------------------
 st.set_page_config(layout='wide', 
                    page_title='Busca de Ativos Virtuais',
@@ -23,6 +18,7 @@ token_adress = st.sidebar.text_input('Digite o endereço do token para a busca n
 
 explorer = st.sidebar.selectbox(label='Qual explorador de bloco você deseja usar? *',
                                 options=['','Etherscan', 'BSCscan', 'Solscan'])
+api_key = None
 if (explorer == 'Etherscan') or (explorer == 'BSCscan'):
     api_key = st.sidebar.text_input(label='Insira sua chave de API para o explorador escolhido:')    
 
@@ -32,6 +28,10 @@ if telegram:
     telegram_message_limit = st.sidebar.text_input(label='Quantas mensagens deseja obter?')
     telegram_api_id = st.sidebar.text_input(label='API ID:')
     telegram_api_hash = st.sidebar.text_input(label='API Hash:')
+
+    if telegram_message_limit is None: telegram_message_limit=100
+    if telegram_api_id is None: telegram_api_id = st.secrets.TELEGRAM_API_ID
+    if telegram_api_hash is None: telegram_api_hash = st.secrets.TELEGRAM_API_HASH
 
 if st.sidebar.button(label='Buscar'):
     # Só mostra as informações de pesquisa se todo o necessário estiver preenchido
@@ -45,10 +45,10 @@ if st.sidebar.button(label='Buscar'):
         etherscan, bscscan, solscan = (False, False, False)
         if explorer == 'Etherscan':
             etherscan = True
-            if api_key is None: api_key = api_key_etherscan
+            if api_key is None: api_key = st.secrets.ETHERSCAN_API_KEY
         elif explorer == 'BSCscan':
             bscscan = True
-            if api_key is None: api_key = api_key_bscscan 
+            if api_key is None: api_key = st.secrets.BSCSCAN_API_KEY 
         elif explorer == 'Solscan':
             solscan = True    
 
@@ -114,9 +114,10 @@ if st.sidebar.button(label='Buscar'):
         if telegram:
             st.subheader('Diagnóstico de Dados do Telegram', divider='gray')
             if telegram_channel:
-                # telegram_df = m.activate_telegram_search(telegram_channel)
-                import pandas as pd
-                telegram_df = pd.read_csv('buscas/telegram/2025-05-23_53390.csv')
+                telegram_df = m.activate_telegram_search(telegram_channel,
+                                                         api_id=telegram_api_id,
+                                                         api_hash=telegram_api_hash,
+                                                         message_limit=telegram_message_limit)
                 fig3, table4 = m.telegram_diagnosis(telegram_df)
                     
                 column1, column2 = st.columns(2)
