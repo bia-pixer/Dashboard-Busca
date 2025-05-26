@@ -18,9 +18,8 @@ token_adress = st.sidebar.text_input('Digite o endereço do token para a busca n
 
 explorer = st.sidebar.selectbox(label='Qual explorador de bloco você deseja usar? *',
                                 options=['','Etherscan', 'BSCscan', 'Solscan'])
-api_key = None
-if (explorer == 'Etherscan') or (explorer == 'BSCscan'):
-    api_key = st.sidebar.text_input(label='Insira sua chave de API para o explorador escolhido:')    
+
+api_key = st.sidebar.text_input(label='Insira sua chave de API para o explorador escolhido:')    
 
 telegram = st.sidebar.checkbox(label='Deseja realizar uma busca no Telegram?')
 if telegram:
@@ -36,29 +35,34 @@ if telegram:
 if st.sidebar.button(label='Buscar'):
     # Só mostra as informações de pesquisa se todo o necessário estiver preenchido
     if termo and token_adress and explorer:
-
-        st.write(f'Você buscou pelo termo: {termo}')
-
         # ----------------------------------------------------------------------
         # Gráfico do block explorer --------------------------------------------  
         # ----------------------------------------------------------------------
         etherscan, bscscan, solscan = (False, False, False)
         if explorer == 'Etherscan':
             etherscan = True
-            if api_key is None: api_key = st.secrets.ETHERSCAN_API_KEY
+            if api_key is '': api_key = st.secrets.ETHERSCAN_API_KEY
         elif explorer == 'BSCscan':
             bscscan = True
-            if api_key is None: api_key = st.secrets.BSCSCAN_API_KEY 
+            if api_key is '': api_key = st.secrets.BSCSCAN_API_KEY 
         elif explorer == 'Solscan':
-            solscan = True    
+            solscan = True
+            if api_key is '': api_key = None
 
-        explorer_data_1, explorer_data_2 =  m.blockchain_data(address=token_adress,
-                                                              api_key_etherscan=api_key.strip(),
-                                                              api_key_bscscan=api_key.strip(),
+        explorer_data_1, explorer_data_2 =  m.blockchain_data(address=token_adress.strip(),
+                                                              api_key_etherscan=api_key,
+                                                              api_key_bscscan=api_key,
                                                               etherscan=etherscan,
                                                               bscscan=bscscan,
                                                               solscan=solscan)
-        if explorer_data_1 and explorer_data_2:
+
+        if (explorer_data_1 is not None) and (explorer_data_2 is not None):
+            column1, column2 = st.columns(2)
+            column1.metric(label='Transferências Totais - Net Value (US$)', 
+                           value=explorer_data_1.sum().round(2),
+                           delta=explorer_data_1[0].round(2))
+            column2.metric(label='Quantidade de Transferências', value=explorer_data_2.sum())
+
             fig = m.explorer_graph(explorer_data_1, explorer_data_2)
             st.plotly_chart(fig)
         else:

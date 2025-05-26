@@ -222,14 +222,21 @@ def blockchain_data(address,
             # Transações SPL (token transfers)
             url_txs = f'https://public-api.solscan.io/account/transactions?address={address}&limit=1000'
             resp = requests.get(url_txs, headers=headers)
+            if resp.status_code != 200:
+                print(f"Erro HTTP {resp.status_code} ao acessar Solscan: {resp.text}")
+                print("Resposta vazia do Solscan.")
+                return None, None
             txs = resp.json()
+            if not isinstance(txs, list):
+                print("Resposta inesperada do Solscan:", txs)
+                return None, None
 
             df = pd.DataFrame(txs)
             df['blockTime'] = pd.to_datetime(df['blockTime'], unit='s')
             df['date'] = df['blockTime'].dt.date
 
             # O campo de valor transferido pode variar, exemplo para transferências de SOL
-            df['lamports'] = df['lamport'].astype(float)
+            df['lamports'] = df['lamports'].astype(float)
             df['value'] = df['lamports'] / 1e9  # 1 SOL = 1e9 lamports
 
             # Total transfer value by date
@@ -247,21 +254,22 @@ def explorer_graph(total_transferences, num_of_transferences):
     fig = go.Figure()
     fig.update_layout(template='plotly_white')
 
-    fig.add_trace(go.Scatter(
-        x=total_transferences.index,
-        y=total_transferences,
-        name='Valor Total Transferido ($)',
-        mode='lines',
-        yaxis='y1',
-        line=dict(color='#28724F')
-    ))
-
     fig.add_trace(go.Bar(
         x=num_of_transferences.index,
         y=num_of_transferences,
         name='Número de Transferências',
-        yaxis='y2',
+        yaxis='y1',
         marker_color='#F2A900'
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=total_transferences.index,
+        y=total_transferences,
+        name='Valor Total Transferido ($)',
+        mode='lines+markers',
+        yaxis='y2',
+        line=dict(color='#28724F', width=4),
+        marker=dict(symbol='circle', size=8, color='#28724F')
     ))
 
     fig.update_layout(
