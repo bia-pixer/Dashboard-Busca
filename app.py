@@ -41,10 +41,10 @@ if st.sidebar.button(label='Buscar'):
         etherscan, bscscan, solscan = (False, False, False)
         if explorer == 'Etherscan':
             etherscan = True
-            if api_key == '': api_key = 'NQA5MKM8HEAZ7ICX1RU6531N1Y12W56QCS' # st.secrets["ETHERSCAN_API_KEY"]
+            if api_key == '': api_key = st.secrets["ETHERSCAN_API_KEY"]
         elif explorer == 'BSCscan':
             bscscan = True
-            if api_key == '': api_key = 'Y9VF33DJPMEM1QVA5YCJ8NVC9J5NAYGAJE' # st.secrets["BSCSCAN_API_KEY"] 
+            if api_key == '': api_key = st.secrets["BSCSCAN_API_KEY"] 
         elif explorer == 'Solscan':
             solscan = True
             if api_key == '': api_key = None
