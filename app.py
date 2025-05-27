@@ -28,9 +28,9 @@ if telegram:
     telegram_api_id = st.sidebar.text_input(label='API ID:')
     telegram_api_hash = st.sidebar.text_input(label='API Hash:')
 
-    if telegram_message_limit is '': telegram_message_limit=100
-    if telegram_api_id is '': telegram_api_id = st.secrets["TELEGRAM_API_ID"]
-    if telegram_api_hash is '': telegram_api_hash = st.secrets["TELEGRAM_API_HASH"]
+    if telegram_message_limit == '': telegram_message_limit=100
+    if telegram_api_id == '': telegram_api_id = '21923304' # st.secrets["TELEGRAM_API_ID"]
+    if telegram_api_hash == '': telegram_api_hash = 'c6185c1f1035db033c56222873a06e14' # st.secrets["TELEGRAM_API_HASH"]
 
 if st.sidebar.button(label='Buscar'):
     # Só mostra as informações de pesquisa se todo o necessário estiver preenchido
@@ -41,13 +41,13 @@ if st.sidebar.button(label='Buscar'):
         etherscan, bscscan, solscan = (False, False, False)
         if explorer == 'Etherscan':
             etherscan = True
-            if api_key is '': api_key = st.secrets["ETHERSCAN_API_KEY"]
+            if api_key == '': api_key = 'NQA5MKM8HEAZ7ICX1RU6531N1Y12W56QCS' # st.secrets["ETHERSCAN_API_KEY"]
         elif explorer == 'BSCscan':
             bscscan = True
-            if api_key is '': api_key = st.secrets["BSCSCAN_API_KEY"] 
+            if api_key == '': api_key = 'Y9VF33DJPMEM1QVA5YCJ8NVC9J5NAYGAJE' # st.secrets["BSCSCAN_API_KEY"] 
         elif explorer == 'Solscan':
             solscan = True
-            if api_key is '': api_key = None
+            if api_key == '': api_key = None
 
         explorer_data_1, explorer_data_2 =  m.blockchain_data(address=token_adress.strip(),
                                                               api_key_etherscan=api_key,

@@ -405,7 +405,8 @@ def activate_telegram_search(channel_username, api_id, api_hash, message_limit):
     return df
 
 def telegram_diagnosis(df):
-    df['date'] = pd.to_datetime(df['date'])
+    df['date'] = pd.to_numeric(df['date'], errors='coerce')
+    df['date'] = pd.to_datetime(df['date'], unit='s')
     df['day'] = df['date'].dt.date
     messages_per_day = df.groupby('day').size()
     messages_per_day.sort_index(ascending=True, inplace=True)
