@@ -90,27 +90,31 @@ if st.sidebar.button(label='Buscar'):
         # X/Twitter ------------------------------------------------------------
         # ----------------------------------------------------------------------
         st.subheader('Diagnóstico de Dados do X/Twitter', divider='gray')
-        filename = termo.replace(' ', '_')
-        fig1, fig2, table1, table2, table3, twitter_df = m.twitter_diagnosis(filename)
 
-        column1, column2 = st.columns(2)
+        if termo.lower() == 'nelore coin':
+            filename = termo.replace(' ', '_')
+            fig1, fig2, table1, table2, table3, twitter_df = m.twitter_diagnosis(filename)
 
-        column1.plotly_chart(fig1)
-        column1.write('**Perfis Mais Ativos**')
-        column1.dataframe(table1)
+            column1, column2 = st.columns(2)
 
-        column2.plotly_chart(fig2)
-        column2.write('**Engajamento por Perfil**')
-        column2.dataframe(table2)
+            column1.plotly_chart(fig1)
+            column1.write('**Perfis Mais Ativos**')
+            column1.dataframe(table1)
 
-        st.write('**Tweets mais relevantes**')
-        st.dataframe(table3.head(10), hide_index=True)
+            column2.plotly_chart(fig2)
+            column2.write('**Engajamento por Perfil**')
+            column2.dataframe(table2)
 
-        st.download_button(label='Clique aqui para fazer o download da base de dados completa da busca na rede X/Twitter',
-                           data=twitter_df.to_csv(), 
-                           file_name='twitter_scrapping_data.csv',
-                           on_click='ignore', 
-                           icon=':material/download:')
+            st.write('**Tweets mais relevantes**')
+            st.dataframe(table3.head(10), hide_index=True)
+
+            st.download_button(label='Clique aqui para fazer o download da base de dados completa da busca na rede X/Twitter',
+                            data=twitter_df.to_csv(), 
+                            file_name='twitter_scrapping_data.csv',
+                            on_click='ignore', 
+                            icon=':material/download:')
+        else:
+            st.warning('No momento, só há dados disponíveis para o token Nelore Coin (NLC).')
 
         # ----------------------------------------------------------------------
         # Telegram -------------------------------------------------------------
