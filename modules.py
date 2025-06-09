@@ -15,14 +15,14 @@ import plotly.io as pio
 # Define o tema padrão para todos os gráficos
 pio.templates.default = "plotly_white"
 
-def noticias_google(termo_busca, atualizar_consulta=False):
+def noticias_google(termo_busca, start_date, end_date, atualizar_consulta=False):
     """
-    Retorna as manchetes de jornais e seus respectivos links relacionados ao termo de busca.
-    Realiza as buscas na região do Brasil e em português.
-    A primeira vez que o termo é buscado, gera um arquivo .csv com o retorno da API.
+    Retorna as manchetes de jornais e seus respectivos links relacionados ao 
+    termo de busca. Realiza as buscas na região do Brasil e em português. A 
+    primeira vez que o termo é buscado, gera um arquivo .csv com o retorno da API.
     As buscas subsequentes desse termo retornam o arquivo .csv.
 
-    Parâmetro:
+    Parâmetros:
     termo_busca (str): Termo de pesquisa
     atualizar_consulta: Realizar nova solicitação via API
     """
@@ -38,7 +38,8 @@ def noticias_google(termo_busca, atualizar_consulta=False):
         df['link'] = df['link'].apply(lambda x: x.split('/&')[0])
         return df
     except:
-        googlenews = GoogleNews(lang='pt', region='BR')
+        googlenews = GoogleNews(lang='pt', region='BR', 
+                                start=start_date, end=end_date)
 
         googlenews.search(termo_busca)
 
@@ -54,6 +55,7 @@ def df_to_html_table(df):
     """
     Transforma um dataframe em uma tabela html. Aplica o hiperlink na manchete.
     """
+    df['date'] = 'H' + df['date'].astype(str)
     df['manchete_linkada'] = df.apply(
         lambda row: f"<a href='{row['link']}' target='_blank'>{row['title']} </a>", axis=1
     )
@@ -69,7 +71,7 @@ def df_to_html_table(df):
         table_html += f"<th>{header}</th>"
     table_html += "</tr>"
 
-    # linhas
+    # Linhas
     for _, row in df.iterrows():
         table_html += "<tr>"
         for col in df.columns:
@@ -405,8 +407,8 @@ def activate_telegram_search(channel_username, api_id, api_hash, message_limit):
     return df
 
 def telegram_diagnosis(df):
-    df['date'] = pd.to_numeric(df['date'], errors='coerce')
-    df['date'] = pd.to_datetime(df['date'], unit='s')
+    # df['date'] = pd.to_numeric(df['date'], errors='coerce')
+    df['date'] = pd.to_datetime(df['date']) # , unit='s')
     df['day'] = df['date'].dt.date
     messages_per_day = df.groupby('day').size()
     messages_per_day.sort_index(ascending=True, inplace=True)

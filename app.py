@@ -2,6 +2,7 @@
 import streamlit as st
 import modules as m
 import asyncio
+import datetime as dt
 
 # Configurações gerais da página -----------------------------------------------
 st.set_page_config(layout='wide', 
@@ -14,6 +15,12 @@ st.title('Busca de Ativos Virtuais')
 st.sidebar.markdown('## Configure sua Busca!')
 
 termo = st.sidebar.text_input('Digite um termo para pesquisa: *')
+
+today = dt.datetime.now()
+last_year = today.year - 1
+start_date, end_date = st.sidebar.date_input(label='Selecione o período da busca: ', 
+                                             value=(dt.date(last_year, 1, 1), today))
+
 token_adress = st.sidebar.text_input('Digite o endereço do token para a busca no block explorer: *')
 
 explorer = st.sidebar.selectbox(label='Qual explorador de bloco você deseja usar? *',
@@ -29,8 +36,8 @@ if telegram:
     telegram_api_hash = st.sidebar.text_input(label='API Hash:')
 
     if telegram_message_limit == '': telegram_message_limit=100
-    if telegram_api_id == '': telegram_api_id = '21923304' # st.secrets["TELEGRAM_API_ID"]
-    if telegram_api_hash == '': telegram_api_hash = 'c6185c1f1035db033c56222873a06e14' # st.secrets["TELEGRAM_API_HASH"]
+    if telegram_api_id == '': telegram_api_id = st.secrets["TELEGRAM_API_ID"]
+    if telegram_api_hash == '': telegram_api_hash = st.secrets["TELEGRAM_API_HASH"]
 
 if st.sidebar.button(label='Buscar'):
     # Só mostra as informações de pesquisa se todo o necessário estiver preenchido
@@ -73,7 +80,7 @@ if st.sidebar.button(label='Buscar'):
         # Notícias -------------------------------------------------------------
         # ----------------------------------------------------------------------
         st.subheader('Principais Notícias', divider='gray')
-        news_df = m.noticias_google(termo)
+        news_df = m.noticias_google(termo, start_date, end_date, atualizar_consulta=True)
         news_df = m.df_to_html_table(news_df)
         st.markdown(news_df, unsafe_allow_html=True)
 
