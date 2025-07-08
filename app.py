@@ -36,8 +36,11 @@ if telegram:
     telegram_api_id = st.sidebar.text_input('API ID:')
     telegram_api_hash = st.sidebar.text_input('API Hash:')
 
+    # Inicializa variáveis de estado
     if 'telegram_code_sent' not in st.session_state:
         st.session_state['telegram_code_sent'] = False
+    if 'phone_code_hash' not in st.session_state:
+        st.session_state['phone_code_hash'] = None
     if 'telegram_authenticated' not in st.session_state:
         st.session_state['telegram_authenticated'] = False
     if 'telegram_error' not in st.session_state:
@@ -50,11 +53,13 @@ if telegram:
 
     if st.sidebar.button('Fazer Login no Telegram'):
         try:
-            code_sent = asyncio.run(m.connect_to_telegram(
-                telegram_api_id, telegram_api_hash, telegram_phone, code=None)
+            code_sent, telegram_code_hash = asyncio.run(m.connect_to_telegram(
+                telegram_api_id, telegram_api_hash, telegram_phone, 
+                code=None, code_hash=None)
                 )
             if code_sent == 'code_sent':
                 st.session_state['telegram_code_sent'] = True
+                st.session_state['phone_code_hash'] = telegram_code_hash
                 st.sidebar.success("Código enviado! Verifique seu Telegram.")
             elif code_sent == 'authenticated':
                 st.session_state['telegram_authenticated'] = True
@@ -72,7 +77,8 @@ if telegram:
         if st.sidebar.button('Validar Código'):
             try:
                 code_sent = asyncio.run(m.connect_to_telegram(
-                    telegram_api_id, telegram_api_hash, telegram_phone, telegram_code
+                    telegram_api_id, telegram_api_hash, telegram_phone, 
+                    telegram_code, st.session_state['phone_code_hash']
                 ))
                 if code_sent == 'authenticated':
                     st.session_state['telegram_authenticated'] = True
@@ -87,8 +93,6 @@ if telegram:
     # Mensagem final
     if st.session_state['telegram_authenticated']:
         st.sidebar.success("Você está autenticado no Telegram!")
-    elif st.session_state['telegram_error']:
-        st.sidebar.error(st.session_state['telegram_error'])
 
 if st.sidebar.button('Buscar'):
     # Só mostra as informações de pesquisa se todo o necessário estiver preenchido
@@ -183,7 +187,7 @@ if st.sidebar.button('Buscar'):
                 telegram_df = m.activate_telegram_search(telegram_channel,
                                                          api_id=telegram_api_id,
                                                          api_hash=telegram_api_hash,
-                                                         message_limit=telegram_message_limit)
+                                                         message_limit=int(telegram_message_limit))
                 fig3, table4 = m.telegram_diagnosis(telegram_df)
                     
                 column1, column2 = st.columns(2)
