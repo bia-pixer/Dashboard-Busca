@@ -14,32 +14,83 @@ st.title('Busca de Ativos Virtuais')
 # Configuração da barra lateral ------------------------------------------------
 st.sidebar.markdown('## Configure sua Busca!')
 
-termo = st.sidebar.text_input('Digite um termo para pesquisa: *')
+termo = st.sidebar.text_input('Digite um termo para pesquisa:*')
 
 today = dt.datetime.now()
 last_year = today.year - 1
-start_date, end_date = st.sidebar.date_input(label='Selecione o período da busca: ', 
+start_date, end_date = st.sidebar.date_input('Selecione o período da busca:', 
                                              value=(dt.date(last_year, 1, 1), today))
 
-token_adress = st.sidebar.text_input('Digite o endereço do token para a busca no block explorer: *')
+token_adress = st.sidebar.text_input('Digite o endereço do token para a busca no block explorer:*')
 
-explorer = st.sidebar.selectbox(label='Qual explorador de bloco você deseja usar? *',
+explorer = st.sidebar.selectbox('Qual explorador de bloco você deseja usar?*',
                                 options=['','Etherscan', 'BSCscan', 'Solscan'])
 
-api_key = st.sidebar.text_input(label='Insira sua chave de API para o explorador escolhido:')    
+api_key = st.sidebar.text_input('Insira sua chave de API para o explorador escolhido:')    
 
-telegram = st.sidebar.checkbox(label='Deseja realizar uma busca no Telegram?')
+telegram = st.sidebar.checkbox('Deseja realizar uma busca no Telegram?')
 if telegram:
-    telegram_channel = st.sidebar.text_input(label='Digite o nome ou link do canal: *')
-    telegram_message_limit = st.sidebar.text_input(label='Quantas mensagens deseja obter?')
-    telegram_api_id = st.sidebar.text_input(label='API ID:')
-    telegram_api_hash = st.sidebar.text_input(label='API Hash:')
+    telegram_phone = st.sidebar.text_input('Digite o número de telefone da sua conta:* (Formato: +5521999999999)')
+    telegram_channel = st.sidebar.text_input('Digite o nome ou link do canal:*')
+    telegram_message_limit = st.sidebar.text_input('Quantas mensagens deseja obter?')
+    telegram_api_id = st.sidebar.text_input('API ID:')
+    telegram_api_hash = st.sidebar.text_input('API Hash:')
 
+    if 'telegram_code_sent' not in st.session_state:
+        st.session_state['telegram_code_sent'] = False
+    if 'telegram_authenticated' not in st.session_state:
+        st.session_state['telegram_authenticated'] = False
+    if 'telegram_error' not in st.session_state:
+        st.session_state['telegram_error'] = None
+
+    if telegram_phone == '': telegram_phone = st.secrets["TELEGRAM_PHONE"]
     if telegram_message_limit == '': telegram_message_limit=100
     if telegram_api_id == '': telegram_api_id = st.secrets["TELEGRAM_API_ID"]
     if telegram_api_hash == '': telegram_api_hash = st.secrets["TELEGRAM_API_HASH"]
 
-if st.sidebar.button(label='Buscar'):
+    if st.sidebar.button('Fazer Login no Telegram'):
+        try:
+            code_sent = asyncio.run(m.connect_to_telegram(
+                telegram_api_id, telegram_api_hash, telegram_phone, code=None)
+                )
+            if code_sent == 'code_sent':
+                st.session_state['telegram_code_sent'] = True
+                st.sidebar.success("Código enviado! Verifique seu Telegram.")
+            elif code_sent == 'authenticated':
+                st.session_state['telegram_authenticated'] = True
+                st.sidebar.success("Autenticado com sucesso!")
+            else:
+                st.session_state['telegram_error'] = code_sent
+                st.sidebar.error(code_sent)
+        except Exception as e:
+            st.session_state['telegram_error'] = str(e)
+            st.sidebar.error(f"Erro: {e}")
+
+    # Se o código já foi enviado, pede o código ao usuário
+    if st.session_state['telegram_code_sent'] and not st.session_state['telegram_authenticated']:
+        telegram_code = st.sidebar.text_input('Insira o código recebido:')
+        if st.sidebar.button('Validar Código'):
+            try:
+                code_sent = asyncio.run(m.connect_to_telegram(
+                    telegram_api_id, telegram_api_hash, telegram_phone, telegram_code
+                ))
+                if code_sent == 'authenticated':
+                    st.session_state['telegram_authenticated'] = True
+                    st.sidebar.success("Autenticado com sucesso!")
+                else:
+                    st.session_state['telegram_error'] = code_sent
+                    st.sidebar.error(code_sent)
+            except Exception as e:
+                st.session_state['telegram_error'] = str(e)
+                st.sidebar.error(f"Erro: {e}")
+
+    # Mensagem final
+    if st.session_state['telegram_authenticated']:
+        st.sidebar.success("Você está autenticado no Telegram!")
+    elif st.session_state['telegram_error']:
+        st.sidebar.error(st.session_state['telegram_error'])
+
+if st.sidebar.button('Buscar'):
     # Só mostra as informações de pesquisa se todo o necessário estiver preenchido
     if termo and token_adress and explorer:
         # ----------------------------------------------------------------------
@@ -65,10 +116,10 @@ if st.sidebar.button(label='Buscar'):
 
         if (explorer_data_1 is not None) and (explorer_data_2 is not None):
             column1, column2 = st.columns(2)
-            column1.metric(label='Transferências Totais - Net Value (US$)', 
+            column1.metric('Transferências Totais - Net Value (US$)', 
                            value=explorer_data_1.sum().round(2),
                            delta=explorer_data_1[0].round(2))
-            column2.metric(label='Quantidade de Transferências', value=explorer_data_2.sum())
+            column2.metric('Quantidade de Transferências', value=explorer_data_2.sum())
 
             fig = m.explorer_graph(explorer_data_1, explorer_data_2)
             st.plotly_chart(fig)
@@ -115,7 +166,7 @@ if st.sidebar.button(label='Buscar'):
             st.write('**Tweets mais relevantes**')
             st.dataframe(table3.head(10), hide_index=True)
 
-            st.download_button(label='Clique aqui para fazer o download da base de dados completa da busca na rede X/Twitter',
+            st.download_button('Clique aqui para fazer o download da base de dados completa da busca na rede X/Twitter',
                             data=twitter_df.to_csv(), 
                             file_name='twitter_scrapping_data.csv',
                             on_click='ignore', 
@@ -154,7 +205,7 @@ else:
         'recorrentes relacionados à essa categoria de ativos. As informações ' \
         'disponibilizadas são:')
     st.markdown('1. Gráfico de transações (obtidas via _block explorers_);')
-    st.markdown('2. 10 notícias mais recentes sobre o termo buscado;')
+    st.markdown('2. Notícias mais recentes sobre o termo buscado;')
     st.markdown('3. Estatísticas do Google Trends;')
     st.markdown('4. Análise das publicações que contém o termo buscado no X;')
     st.markdown('5. Análise da atividade em canal especificado no Telegram.')

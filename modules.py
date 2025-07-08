@@ -367,9 +367,38 @@ def twitter_diagnosis(file_name):
 
     return graph_1, heatmap, perfis_ativos, engajamento_perfil, tweets_relevantes, df
 
+async def connect_to_telegram(api_id, api_hash, phone, code):
+    client = TelegramClient('session_name', api_id, api_hash)
+    await client.connect()
+
+    if not await client.is_user_authorized():
+        if code is None:
+            await client.send_code_request(phone=phone)
+            return 'code_sent'
+        else:
+            try:
+                await client.sign_in(phone, code)
+                await client.disconnect()
+                return 'authenticated'
+            except Exception as e:
+                await client.disconnect()
+                return f'Erro de autenticação: {e}'
+
 async def telegram_data(channel_username, api_id, api_hash, message_limit):
     client = TelegramClient('session_name', api_id, api_hash)
     await client.start()
+    #await client.connect()
+
+    #if not await client.is_user_authorized():
+    #    if code is None:
+    #        await client.send_code_request(phone=phone)
+    #        return 'Código de validação enviado para o seu número no Telegram!'
+    #    else:
+    #        try:
+    #            await client.sign_in(phone, code)
+    #        except Exception as e:
+    #            await client.disconnect()
+    #            return f'Erro de autenticação: {e}'
 
     channel = await client.get_entity(channel_username)
 
