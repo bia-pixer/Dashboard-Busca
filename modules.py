@@ -8,6 +8,7 @@ import random
 from GoogleNews import GoogleNews
 from pytrends.request import TrendReq
 from telethon import TelegramClient
+from apify_client import ApifyClient
 import asyncio
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -288,6 +289,46 @@ def explorer_graph(total_transferences, num_of_transferences):
         legend=dict(x=0.1, y=1.1, orientation='h')
     )
     return fig
+
+def fetch_tweets_apify(api_token, search_terms, max_items=100):
+    """
+    Busca tweets usando o Tweet Fast Scraper da Apify e retorna um DataFrame.
+
+    Parâmetros:
+    - api_token: str, seu token da Apify
+    - search_terms: list[str], termos de busca (ex: ["from:elonmusk"])
+    - max_items: int, número máximo de tweets a coletar
+
+    Retorno:
+    - DataFrame pandas com os dados dos tweets
+    """
+    client = ApifyClient(api_token)
+
+    # Parâmetros de entrada do scraper
+    run_input = {
+        "searchTerms": search_terms,
+        "cookies": ["auth_token=304c9c4d0e13e6ccf682dfac3bdf213388b1f070;ph_phc_TXdpocbGVeZVm5VJmAsHTMrCofBQu3e0kN8HGMNGTVW_posthog=%7B%22distinct_id%22%3A%220194698a-e095-7869-940a-3a43aa499620%22%2C%22%24sesid%22%3A%5B1740811811087%2C%2201955075-4108-7ed6-92c0-21fe0dbf9f30%22%2C1740811616520%5D%7D;guest_id=v1%3A174230154202102158;ads_prefs=HBERAAA=;twid=u%3D1479073844589895680;auth_multi=1879891535053111296:feedf85e010b01c51d4e2a480cc783e83fa11ba1|1882133993115803648:b07bdae6b633c8f166f12369ba017c4916351cef|1881370916053270529:7561263540490652212f31b251f3a87e33d4aa9c;night_mode=2;__cf_bm=W4PqKoMtfTHfVf3J5vHyFVGH4O.UFLwELn5PZ5m95R4-1742300937-1.0.1.1-2tGbjg60z.6aT_1TcPfQy3tE7GmOuC21MJ1OcBdR5XP0cOMxdexOC7wUd_hKxHvD7vPDwJkCpOUpELVN7_LOwoRDi13IuyGvDluN74ajWKQ;ct0=1b3473505eed25605c2dc8c6802e3ad3cc792a97846f496481f55d6970390c6aba49dd40e8f7f96a3c902e328c1e8461e89d7429fdac2e61a65fdbd5f92f9716b23d1c730d1ca30df28c6eaedd25f54c;guest_id_ads=v1%3A174230154202102158;guest_id_marketing=v1%3A174230154202102158;kdt=O83gjfkTl8AaNp5z3JXyUGdr1k0xFZPBwD9myC97;personalization_id=v1_SkJRGfsm95VskQ4ujBPgEQ=="], 
+        "sortBy": "Latest",
+        "onlyVerifiedUsers": False,
+        "onlyBuleVerifiedUsers": False,
+        "onlyImage": False,
+        "onlyVideo": False,
+        "onlyQuote": False,
+        "onlyReply": False,
+        "maxItems": max_items
+    }
+
+    run = client.actor("VAm0giwnFMw65Ev8H").call(run_input=run_input)
+
+    # Recupera os resultados do dataset
+    dataset_id = run["defaultDatasetId"]
+    items = list(client.dataset(dataset_id).iterate_items())
+
+    # Converte para DataFrame
+    df = pd.json_normalize(items)
+    now = datetime.now()
+    df.to_csv(f'buscas/twitter/{search_terms[0]}_{now.date()}_{random.randint(0, 100000)}.csv', index=False)
+    return df
 
 def twitter_diagnosis(file_name):
     df= pd.read_csv(f'buscas/twitter/{file_name}.csv')

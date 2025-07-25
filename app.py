@@ -3,6 +3,8 @@ import streamlit as st
 import modules as m
 import asyncio
 import datetime as dt
+from cookies_manager import CookieManager
+import time
 
 # Configurações gerais da página -----------------------------------------------
 st.set_page_config(layout='wide', 
@@ -28,11 +30,14 @@ explorer = st.sidebar.selectbox('Qual explorador de bloco você deseja usar?*',
 
 api_key = st.sidebar.text_input('Insira sua chave de API para o explorador escolhido:')    
 
+twitter_max_tweets = st.sidebar.number_input('Número máximo de tweets a serem obtidos:', 
+                                           min_value=1, max_value=1000000, value=10000)
+
 telegram = st.sidebar.checkbox('Deseja realizar uma busca no Telegram?')
 if telegram:
-    telegram_phone = st.sidebar.text_input('Digite o número de telefone da sua conta:* (Formato: +5521999999999)')
+    telegram_phone = st.sidebar.text_input('Digite o número de telefone da sua conta:*', placeholder='+5521999999999')
     telegram_channel = st.sidebar.text_input('Digite o nome ou link do canal:*')
-    telegram_message_limit = st.sidebar.text_input('Quantas mensagens deseja obter?')
+    telegram_message_limit = st.sidebar.number_input('Quantas mensagens deseja obter?', min_value=1, value=100)
     telegram_api_id = st.sidebar.text_input('API ID:')
     telegram_api_hash = st.sidebar.text_input('API Hash:')
 
@@ -47,7 +52,6 @@ if telegram:
         st.session_state['telegram_error'] = None
 
     if telegram_phone == '': telegram_phone = st.secrets["TELEGRAM_PHONE"]
-    if telegram_message_limit == '': telegram_message_limit=100
     if telegram_api_id == '': telegram_api_id = st.secrets["TELEGRAM_API_ID"]
     if telegram_api_hash == '': telegram_api_hash = st.secrets["TELEGRAM_API_HASH"]
 
@@ -152,6 +156,29 @@ if st.sidebar.button('Buscar'):
         # X/Twitter ------------------------------------------------------------
         # ----------------------------------------------------------------------
         st.subheader('Diagnóstico de Dados do X/Twitter', divider='gray')
+
+        manager = CookieManager(tempo_bloqueio_minutos=1)
+
+        for i in range(10):
+            cookie_info = manager.proximo_cookie()
+            if cookie_info:
+                idx =  cookie_info["indice"]
+                cookie = cookie_info["cookie"]
+                st.write(f"Requisição #{i+1}: Usando cookie de índice {idx} – {cookie['value']}")
+                # Simulação: supcookie_infoonha que cada cookie só pode ser usado uma vez antes de ser bloqueado
+                manager.marcar_bloqueado(idx)
+            else:
+                st.warning("Todos os cookies estão temporariamente bloqueados. Aguardando desbloqueio...")
+                time.sleep(60)  # Aguarda 1 minuto antes de tentar novamente
+
+        st.success("Teste finalizado!")
+        st.write(f"Cookies disponíveis após teste: {manager.total_disponiveis()}")
+        st.write(f"Cookies bloqueados após teste: {manager.total_bloqueados()}")
+            
+        twitter_df = m.fetch_tweets_apify( st.secrets["APIFY_CLIENT_TOKEN"], 
+                                          search_terms=[termo], 
+                                          max_items=twitter_max_tweets)
+        st.dataframe(twitter_df, hide_index=True)
 
         if termo.lower() == 'nelore coin':
             filename = termo.replace(' ', '_')
