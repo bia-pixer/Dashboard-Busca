@@ -16,7 +16,7 @@ class CookieManager:
             json_list = json.loads(pool)
             # A lista já é de strings no formato "auth_token=xxx"
             # return [list(d.keys())[0] for d in json_list]
-            return cookies
+            return json_list
         except Exception as e:
             st.error(f"Erro ao carregar cookies do secrets: {e}")
             return []
