@@ -164,8 +164,7 @@ if st.sidebar.button('Buscar'):
             if cookie_info:
                 idx =  cookie_info["indice"]
                 cookie = cookie_info["cookie"]
-                st.write(f"Requisição #{i+1}: Usando cookie de índice {idx} – {cookie['value']}")
-                # Simulação: supcookie_infoonha que cada cookie só pode ser usado uma vez antes de ser bloqueado
+                st.write(f"Requisição #{i+1}: Usando cookie de índice {idx} – {cookie}")
                 manager.marcar_bloqueado(idx)
             else:
                 st.warning("Todos os cookies estão temporariamente bloqueados. Aguardando desbloqueio...")
@@ -177,6 +176,7 @@ if st.sidebar.button('Buscar'):
             
         twitter_df = m.fetch_tweets_apify( st.secrets["APIFY_CLIENT_TOKEN"], 
                                           search_terms=[termo], 
+                                          cookies=[cookie],
                                           max_items=twitter_max_tweets)
         st.dataframe(twitter_df, hide_index=True)
 
