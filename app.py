@@ -164,7 +164,7 @@ if st.sidebar.button('Buscar'):
             if cookie_info:
                 idx =  cookie_info["indice"]
                 cookie = cookie_info["cookie"]
-                st.write(f"Requisição #{i+1}: Usando cookie de índice {idx} – {cookie}")
+                # st.write(f"Requisição #{i+1}: Usando cookie de índice {idx} – {cookie}")
                 manager.marcar_bloqueado(idx)
             else:
                 st.warning("Todos os cookies estão temporariamente bloqueados. Aguardando desbloqueio...")
