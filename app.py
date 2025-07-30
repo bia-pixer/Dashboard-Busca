@@ -165,15 +165,15 @@ if st.sidebar.button('Buscar'):
         #    if cookie_info:
         #        idx =  cookie_info["indice"]
         #        cookie = cookie_info["cookie"]
-        #        # st.write(f"Requisição #{i+1}: Usando cookie de índice {idx} – {cookie}")
+        #        st.write(f"Requisição {i+1}: Usando cookie de índice {idx} – {cookie}")
         #        manager.marcar_bloqueado(idx)
         #   else:
         #        st.warning("Todos os cookies estão temporariamente bloqueados. Aguardando desbloqueio...")
         #        time.sleep(60)  # Aguarda 1 minuto antes de tentar novamente
 
-        #st.success("Teste finalizado!")
-        #t.write(f"Cookies disponíveis após teste: {manager.total_disponiveis()}")
-        #st.write(f"Cookies bloqueados após teste: {manager.total_bloqueados()}")
+        # st.success("Teste finalizado!")
+        # st.write(f"Cookies disponíveis após teste: {manager.total_disponiveis()}")
+        # st.write(f"Cookies bloqueados após teste: {manager.total_bloqueados()}")
         pool = st.secrets["cookies"]["pool"]
         cookies = json.loads(pool)
 
